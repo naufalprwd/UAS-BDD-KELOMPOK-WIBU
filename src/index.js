@@ -4,8 +4,10 @@ import {
   addDoc, deleteDoc, doc,
   query, where, orderBy,
   serverTimestamp, getDoc,
-  updateDoc,
+  updateDoc, 
 } from 'firebase/firestore'
+
+import { getAuth, createUserWithEmailAndPassword, signOut, signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth'
 
 const firebaseConfig = {
     apiKey: "AIzaSyDFUrYFJ6iRK22VTw34PeoAQW_m8UWgBHw",
@@ -25,12 +27,13 @@ const db = getFirestore()
 
 // collection ref
 const colref = collection(db, 'books')
+const auth  = getAuth()
 
 // queries
 const q = query(colref, orderBy('createdAt'))
 
 // real time collection data
-  onSnapshot(q, (snapshot) => {
+const unsubCol = onSnapshot(colref, (snapshot) => {
     let books = []
     snapshot.docs.forEach((doc) => {
       books.push({...doc.data(), id: doc.id })
@@ -71,7 +74,7 @@ const q = query(colref, orderBy('createdAt'))
 // get a single document
 const docref = doc(db, 'books', 'Y33ucvDQxfopKUsHCxMe')
 
-onSnapshot(docref, (doc) => {
+const unsubDoc = onSnapshot(docref, (doc) => {
   console.log(doc.data(), doc.id)
 })
 
@@ -88,5 +91,75 @@ updateForm.addEventListener('submit', (e) => {
   .then(() => {
     updateForm.reset()
   })
+
+})
+
+
+
+// Sign Up
+
+const signUpForm = document.querySelector('.signup');
+signUpForm.addEventListener('submit', (e) => {
+    e.preventDefault()
+
+    const email = signUpForm.email.value
+    const password = signUpForm.password.value
+    
+    createUserWithEmailAndPassword(auth, email, password)
+        .then((cred) => {
+            console.log('user created:', cred.user)
+            signUpForm.reset()
+        })
+        .catch((err) => {
+            console.log(err.message)
+        })
+})
+
+// logging in and out
+
+const logoutButton = document.querySelector('.logout');
+logoutButton.addEventListener('click', (e) => {
+    signOut(auth)
+        .then(() => {
+            console.log('Kamu telah logout')
+        })
+        .catch((err) => {
+            console.log(err.message)
+        })
+
+})
+
+const logginForm = document.querySelector('.login');
+logginForm.addEventListener('submit', (e) => {
+    e.preventDefault()
+
+    const email = logginForm.email.value
+    const password = logginForm.password.value
+
+    signInWithEmailAndPassword(auth, email, password)
+        .then((cred) => {
+            console.log('user logged in:', cred.user)
+        })
+        .catch((err) => {
+            console.log(err.message)
+        })
+
+
+})
+
+// subscribe to auth changes
+const unsubAuth = onAuthStateChanged(auth, (user) => {
+    console.log('user status change:', user)
+})
+
+
+// unsubscribe to auth changes
+const unsubButton = document.querySelector('.unsub');
+unsubButton.addEventListener('click', (e) => {
+    console.log('unsubscribing')
+    unsubCol()
+    unsubDoc()
+    unsubAuth()
+    
 
 })
